@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المحاكي المتقدم | MONZER FISAL EMULATOR</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Cairo', sans-serif; scroll-behavior: smooth; }
+        body {
+            background-color: #030712;
+            color: #f3f4f6;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.12) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glow-btn:hover { box-shadow: 0 0 30px rgba(56, 189, 248, 0.6); }
+        .custom-checkbox input:checked + div { background-color: #0284c7; border-color: #38bdf8; }
+        .custom-checkbox input:checked + div i { opacity: 1; transform: scale(1); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-gray-800/60">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-microchip"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-black text-white leading-tight">MONZER FISAL</h1>
+                    <p class="text-xs text-sky-400 font-semibold tracking-wider">NEXT-GEN EMULATOR ENGINE</p>
+                </div>
+            </div>
+            <a href="https://wa.me/24911367540" target="_blank" class="glow-btn bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2">
+                <i class="fa-brands fa-whatsapp text-base"></i>
+                <span>الدعم الفني</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-4 py-12 space-y-10">
+
+        <!-- Hero Section -->
+        <div class="relative overflow-hidden rounded-3xl p-8 md:p-12 glass-panel border border-sky-500/20 text-center">
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 mb-4">
+                🚀 High-Performance Architecture Engine
+            </span>
+            <h1 class="text-3xl md:text-5xl font-black text-white mb-6 leading-tight">
+                المحاكي الاحترافي المتقدم <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-400">MONZER FISAL EMULATOR</span>
+            </h1>
+            <p class="text-gray-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+                دليل الاستخدام الرسمي، اتفاقية حقوق النشر والملكية الفكرية، وشروط الاستخدام المعتمدة لضمان أقصى درجات الأمان والكفاءة التشغيلية.
+            </p>
+        </div>
+
+        <!-- 1. Overview -->
+        <section class="glass-panel p-6 md:p-8 rounded-2xl">
+            <div class="flex items-center gap-3 mb-4 border-b border-gray-800 pb-3">
+                <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white">1. نبذة عن المحاكي (Core Overview)</h2>
+            </div>
+            <p class="text-gray-300 text-sm leading-relaxed">
+                تمت هندسة هذا المحاكي باستخدام أحدث المبادئ البرمجية لتقديم بيئة تشغيل فائقة السرعة والاستقرار. يعتمد محرك التشغيل على تقنيات معالجة منخفضة المستوى (Low-Level Optimization) لتحقيق أقصى استغلال لموارد الجهاز (CPU/GPU) وتقليل أوقات التأخير (Latency)، مما يضمن تجربة تفاعلية سلسة ومنافسة لأقوى المحاكيات العالمية.
+            </p>
+        </section>
+
+        <!-- 2. Rights -->
+        <section class="glass-panel p-6 md:p-8 rounded-2xl">
+            <div class="flex items-center gap-3 mb-4 border-b border-gray-800 pb-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white">2. حقوق النشر والملكية الفكرية (Copyrights & IP)</h2>
+            </div>
+            <ul class="space-y-3 text-sm text-gray-300">
+                <li class="flex items-start gap-3">
+                    <i class="fa-solid fa-check text-sky-400 mt-1"></i>
+                    <span><b>الملكية الفكرية الحصرية:</b> جميع الشفرات المصدرية (Source Code)، التصاميم، الخوارزميات، والملفات البرمجية ملكية مطلقة للمبرمج <b>MONZER fisal</b>.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <i class="fa-solid fa-check text-sky-400 mt-1"></i>
+                    <span><b>حظر الهندسة العكسية:</b> يُحظر تماماً تفكيك التطبيق، تعديل ملفاته، الهندسة العكسية (Reverse Engineering)، أو تسريب الشفرة تحت أي طائلة قانونية.</span>
+                </li>
+            </ul>
+        </section>
+
+        <!-- 3. Interactive Agreement -->
+        <section class="glass-panel p-6 rounded-2xl border border-sky-500/30 text-center space-y-4">
+            <h3 class="text-lg font-bold text-white">إقرار واستكمال التنزيل / التشغيل</h3>
+            <p class="text-xs text-gray-400">يرجى تأكيد موافقتك على اتفاقية المبرمج MONZER fisal لبدء الاستخدام:</p>
+
+            <label class="custom-checkbox inline-flex items-center gap-3 cursor-pointer select-none">
+                <input type="checkbox" id="acceptCheckbox" class="hidden" onchange="toggleButton()">
+                <div class="w-6 h-6 rounded-lg border-2 border-gray-600 flex items-center justify-center transition">
+                    <i class="fa-solid fa-check text-white text-xs opacity-0 transform scale-50 transition"></i>
+                </div>
+                <span class="text-sm text-gray-200 font-semibold">أوافق على جميع الشروط وقوانين الملكية الفكرية المذكورة أعلاه</span>
+            </label>
+
+            <div>
+                <button id="startBtn" disabled class="opacity-40 cursor-not-allowed bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold px-8 py-3 rounded-xl text-sm transition-all duration-300">
+                    متابعة وتشغيل المحاكي <i class="fa-solid fa-arrow-left mr-2"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- 4. Support Box -->
+        <section class="glass-panel p-6 rounded-2xl border border-sky-500/20 text-center">
+            <h3 class="text-base font-bold text-white mb-2">الدعم الفني المباشر</h3>
+            <a href="https://wa.me/24911367540" target="_blank" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow-lg">
+                <i class="fa-brands fa-whatsapp text-lg"></i>
+                <span>تواصل عبر واتساب: 24911367540+</span>
+            </a>
+        </section>
+
+    </main>
+
+    <footer class="glass-panel border-t border-gray-800/80 py-6 text-center text-xs text-gray-500">
+        <p>جميع الحقوق محفوظة © 2026 للمبرمج <span class="text-sky-400 font-bold">MONZER fisal</span></p>
+    </footer>
+
+    <script>
+        function toggleButton() {
+            const checkbox = document.getElementById('acceptCheckbox');
+            const btn = document.getElementById('startBtn');
+            if(checkbox.checked) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-40', 'cursor-not-allowed');
+                btn.classList.add('hover:scale-105');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('opacity-40', 'cursor-not-allowed');
+                btn.classList.remove('hover:scale-105');
+            }
+        }
+    </script>
+</body>
+</html>
