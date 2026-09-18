@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المختبر التفاعلي المتقدم للكيمياء الكهربية</title>
+    <style>
+        :root {
+            --bg-dark: #090d16;
+            --panel-bg: #111827;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-red: #f87171;
+            --accent-yellow: #fbbf24;
+            --text-light: #f3f4f6;
+            --border: #1f2937;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            margin: 0;
+            padding: 15px;
+            direction: rtl;
+        }
+        .app-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 15px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        @media (max-width: 1024px) { .app-grid { grid-template-columns: 1fr; } }
+        .main-pane, .side-pane {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border);
+        }
+        .controls-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        label { font-size: 11px; color: #9ca3af; font-weight: bold; }
+        select, input {
+            background: #030712;
+            border: 1px solid #374151;
+            color: var(--text-light);
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            outline: none;
+        }
+        button {
+            background: var(--accent-blue);
+            color: #030712;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { filter: brightness(1.1); }
+        canvas {
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid #1f2937;
+            display: block;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .metric-card {
+            background: #030712;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-right: 3px solid var(--accent-blue);
+        }
+        .metric-card.green { border-color: var(--accent-green); }
+        .metric-card.yellow { border-color: var(--accent-yellow); }
+        .metric-title { font-size: 10px; color: #9ca3af; }
+        .metric-val { font-size: 14px; font-weight: bold; color: #fff; margin-top: 2px; }
+        .eq-box {
+            font-family: monospace;
+            background: #030712;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--accent-green);
+            direction: ltr;
+            text-align: left;
+            border: 1px solid #1f2937;
+        }
+        .legend {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            justify-content: center;
+            margin-top: 8px;
+            background: #030712;
+            padding: 6px;
+            border-radius: 6px;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="app-grid">
+    <div class="main-pane">
+        <div class="controls-row">
+            <div class="control-group">
+                <label>نوع الخلية:</label>
+                <select id="cellType" onchange="resetSim()">
+                    <option value="utube">أنبوبة U (التحليل الكهربائي)</option>
+                    <option value="voltmeter">الخلية التحليلية (كأس زجاجي)</option>
+                    <option value="daniel">خلية دانيال (قنطرة ملحية)</option>
+                    <option value="volta">الخلية البسيطة (فولتا)</option>
+                    <option value="lead">مركم الرصاص (الحامضي)</option>
+                    <option value="leclanche">خلية لادكلانشيه الجافة (Leclanché)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>الإلكتروليت / المادة:</label>
+                <select id="electrolyte" onchange="resetSim()">
+                    <option value="CuSO4">كبريتات النحاس (CuSO4)</option>
+                    <option value="HCl">حمض الهيدروكلوريك (HCl)</option>
+                    <option value="NaCl">مصهور كلوريد الصوديوم (NaCl)</option>
+                    <option value="H2SO4">حمض الكبريتيك (H2SO4)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>الجهد المطبق (V):</label>
+                <input type="range" id="voltage" min="0" max="12" step="0.1" value="4.5" oninput="updateMetrics()">
+            </div>
+            <div class="control-group">
+                <label>الزمن (ثواني):</label>
+                <input type="number" id="timeInput" value="60" min="1" onchange="updateMetrics()" oninput="updateMetrics()">
+            </div>
+            <div class="control-group" style="justify-content: flex-end;">
+                <button id="startBtn" onclick="toggleSim()">تشغيل المحاكاة 🚀</button>
+            </div>
+        </div>
+
+        <canvas id="chemCanvas" width="850" height="480"></canvas>
+
+        <div class="legend">
+            <span><span class="dot" style="background:#f87171"></span> كاتيونات (+ الموجبة)</span>
+            <span><span class="dot" style="background:#60a5fa"></span> أنيونات (- السالبة)</span>
+            <span><span class="dot" style="background:#fbbf24"></span> إلكترونات (e⁻)</span>
+            <span><span class="dot" style="background:#4ade80"></span> غاز متصاعد</span>
+        </div>
+    </div>
+
+    <div class="side-pane">
+        <h3 style="margin:0 0 10px 0; font-size:15px; color:var(--accent-blue)">📊 نتائج المحاكاة وحسابات فاراداي</h3>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-title">جهد الخلية (E.M.F)</div>
+                <div class="metric-val" id="emfDisp">0.00 V</div>
+            </div>
+            <div class="metric-card green">
+                <div class="metric-title">شدة التيار (I)</div>
+                <div class="metric-val" id="currentDisp">0.00 A</div>
+            </div>
+            <div class="metric-card yellow">
+                <div class="metric-title">الكتلة المترسبة (m)</div>
+                <div class="metric-val" id="massDisp">0.000 g</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-title">حجم الغاز المتصاعد</div>
+                <div class="metric-val" id="volDisp">0.00 mL</div>
+            </div>
+        </div>
+
+        <h4 style="margin:12px 0 4px 0; font-size:12px">تفاعل المصعد (Anode - أكسدة):</h4>
+        <div class="eq-box" id="anodeEq">-</div>
+
+        <h4 style="margin:8px 0 4px 0; font-size:12px">تفاعل المهبط (Cathode - اختزال):</h4>
+        <div class="eq-box" id="cathodeEq">-</div>
+
+        <h4 style="margin:8px 0 4px 0; font-size:12px">التفاعل الكلي الموزون:</h4>
+        <div class="eq-box" id="totalEq">-</div>
+
+        <h4 style="margin:8px 0 4px 0; font-size:12px; color:var(--accent-yellow)">🧪 نواتج التفاعل والراسب:</h4>
+        <div id="productsInfo" style="font-size:11px; line-height:1.5; color:#f3f4f6; background:#030712; padding:8px; border-radius:6px; border:1px solid #1f2937">
+        </div>
+
+        <h4 style="margin:8px 0 4px 0; font-size:12px; color:var(--accent-green)">⚡ نوع الإلكتروليت والخصائص الإلكتروليتية:</h4>
+        <div id="electrolyteInfo" style="font-size:11px; line-height:1.5; color:#f3f4f6; background:#030712; padding:8px; border-radius:6px; border:1px solid #1f2937">
+        </div>
+
+        <h4 style="margin:8px 0 4px 0; font-size:12px; color:#c084fc">🔬 الأساس العلمي والضغط الاسموزي:</h4>
+        <div id="osmoticInfo" style="font-size:11px; line-height:1.5; color:#f3f4f6; background:#030712; padding:8px; border-radius:6px; border:1px solid #1f2937">
+        </div>
+
+        <h4 style="margin:12px 0 4px 0; font-size:12px; color:var(--accent-blue)">💡 الشرح والتفاصيل العلمية:</h4>
+        <div id="explanation" style="font-size:11px; line-height:1.6; color:#d1d5db; background:#030712; padding:8px; border-radius:6px; height:110px; overflow-y:auto">
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('chemCanvas');
+const ctx = canvas.getContext('2d');
+
+let isRunning = false;
+let animFrame;
+let cations = [];
+let anions = [];
+let eParticles = [];
+let gasBubbles = [];
+let depositAmount = 0;
+
+const FARADAY = 96500;
+
+function getElectrodeConfig() {
+    const type = document.getElementById('cellType').value;
+    const electro = document.getElementById('electrolyte').value;
+
+    let anode = { name: "كربون (جرافيت)", symbol: "C", sign: "(+)", color: "#334155" };
+    let cathode = { name: "كربون (جرافيت)", symbol: "C", sign: "(-)", color: "#334155" };
+
+    if (type === 'daniel') {
+        anode = { name: "خارصين (أنود)", symbol: "Zn", sign: "(-)", color: "#94a3b8" };
+        cathode = { name: "نحاس (كاثود)", symbol: "Cu", sign: "(+)", color: "#ea580c" };
+    } else if (type === 'volta') {
+        anode = { name: "خارصين (أنود)", symbol: "Zn", sign: "(-)", color: "#94a3b8" };
+        cathode = { name: "نحاس (كاثود)", symbol: "Cu", sign: "(+)", color: "#ea580c" };
+    } else if (type === 'lead') {
+        anode = { name: "رصاص (أنود)", symbol: "Pb", sign: "(-)", color: "#475569" };
+        cathode = { name: "ثاني أكسيد الرصاص", symbol: "PbO₂", sign: "(+)", color: "#0284c7" };
+    } else if (type === 'leclanche') {
+        anode = { name: "وعاء الخارصين", symbol: "Zn (أنود)", sign: "(-)", color: "#64748b" };
+        cathode = { name: "ساق الجرافيت", symbol: "C (كاثود)", sign: "(+)", color: "#1e293b" };
+    } else {
+        if (electro === 'CuSO4') {
+            anode = { name: "جرافيت / نحاس", symbol: "C / Cu", sign: "(+)", color: "#334155" };
+            cathode = { name: "جرافيت (مهبط)", symbol: "C", sign: "(-)", color: "#475569" };
+        } else if (electro === 'NaCl') {
+            anode = { name: "جرافيت (أنود)", symbol: "C", sign: "(+)", color: "#334155" };
+            cathode = { name: "حديد / جرافيت", symbol: "Fe / C", sign: "(-)", color: "#64748b" };
+        } else {
+            anode = { name: "بلاتين / كربون", symbol: "Pt / C", sign: "(+)", color: "#334155" };
+            cathode = { name: "بلاتين / كربون", symbol: "Pt / C", sign: "(-)", color: "#334155" };
+        }
+    }
+    return { anode, cathode };
+}
+
+function getElectrolyteLabel() {
+    const type = document.getElementById('cellType').value;
+    const electro = document.getElementById('electrolyte').value;
+
+    if (type === 'daniel') {
+        return { label1: "محلول ZnSO₄", label2: "محلول CuSO₄" };
+    } else if (type === 'volta') {
+        return { label: "حمض H₂SO₄ مخفف" };
+    } else if (type === 'lead') {
+        return { label: "حمض H₂SO₄ (إلكتروليت)" };
+    } else if (type === 'leclanche') {
+        return { label: "معجون NH₄Cl + ZnCl₂ + MnO₂" };
+    } else {
+        if (electro === 'CuSO4') return { label: "محلول كبريتات النحاس CuSO₄" };
+        if (electro === 'HCl') return { label: "محلول حمض HCl" };
+        if (electro === 'NaCl') return { label: "مصهور كلوريد الصوديوم NaCl" };
+        if (electro === 'H2SO4') return { label: "محلول حمض H₂SO₄" };
+    }
+    return { label: "محلول إلكتروليتي" };
+}
+
+function resetSim() {
+    cations = [];
+    anions = [];
+    eParticles = [];
+    gasBubbles = [];
+    depositAmount = 0;
+
+    for(let i=0; i<25; i++) {
+        cations.push({ x: 200 + Math.random()*450, y: 220 + Math.random()*150, vx: (Math.random()-0.5)*1.5, vy: (Math.random()-0.5)*1.5 });
+        anions.push({ x: 200 + Math.random()*450, y: 220 + Math.random()*150, vx: (Math.random()-0.5)*1.5, vy: (Math.random()-0.5)*1.5 });
+    }
+
+    for(let i=0; i<15; i++) {
+        eParticles.push({ progress: Math.random() });
+    }
+
+    updateMetrics();
+    draw();
+}
+
+function updateMetrics() {
+    const type = document.getElementById('cellType').value;
+    const electro = document.getElementById('electrolyte').value;
+    const v = parseFloat(document.getElementById('voltage').value);
+    const t = parseFloat(document.getElementById('timeInput').value) || 0;
+
+    let emf = v;
+    let aEq = "", cEq = "", tEq = "", info = "";
+    let eqMass = 31.75;
+    let nValence = 2;
+
+    let prodDetails = "";
+    let elecDetails = "";
+    let osmoDetails = "";
+
+    if(type === 'utube' || type === 'voltmeter') {
+        if(electro === 'CuSO4') {
+            aEq = "2H₂O → O₂ + 4H⁺ + 4e⁻";
+            cEq = "Cu²⁺ + 2e⁻ → Cu(s)";
+            tEq = "2Cu²⁺ + 2H₂O → 2Cu + O₂ + 4H⁺";
+            info = "تحليل كهرومائي: يترسب معدن النحاس أحمر اللون على المهبط وتتصاعد فقاعات الأوكسجين عند المصعد.";
+            eqMass = 31.75;
+            nValence = 2;
+
+            prodDetails = "<b>الغاز المتصاعد:</b> غاز الأكسجين (O₂) عند المصعد (+).<br><b>الراسب/الصلب:</b> راسب محمر من عنصر النحاس (Cu) يترسب على المهبط (-).";
+            elecDetails = "<b>نوع الإلكتروليت:</b> إلكتروليت قوي (Strong Electrolyte)، تام التأين في المحلول المائي إلى أيونات Cu²⁺ و SO₄²⁻ مع توصيل كهربائي عالٍ.";
+            osmoDetails = "<b>الأساس العلمي والضغط الاسموزي:</b> ينفصل الملح كلياً مما يتسبب في زيادة عدد الأيونات الحرة ويرفع معامل فان هوف (i ≈ 3)، وبالتالي يرتفع الضغط الاسموزي للمحلول تناسباً طردياً مع التركيز الأيوني الكلي.";
+        } else if(electro === 'NaCl') {
+            aEq = "2Cl⁻ → Cl₂(g) + 2e⁻";
+            cEq = "2Na⁺ + 2e⁻ → 2Na(s)";
+            tEq = "2NaCl → 2Na + Cl₂";
+            info = "تحليل مصهور كلوريد الصوديوم: يتصاعد غاز الكلور عند المصعد (+) ويتكون الصوديوم عند المهبط (-).";
+            eqMass = 23.0;
+            nValence = 1;
+
+            prodDetails = "<b>الغاز المتصاعد:</b> غاز الكلور (Cl₂) الأصفر الخضرائي عند المصعد (+).<br><b>الراسب/الصلب:</b> تجمّع فلز الصوديوم (Na) المنصهر عند المهبط (-).";
+            elecDetails = "<b>نوع الإلكتروليت:</b> إلكتروليت قوي مصهور (Molten Ionic Electrolyte) ينقل التيار عبر الأيونات الحرّة Na⁺ و Cl⁻ بدون وجود ماء.";
+            osmoDetails = "<b>الأساس العلمي والضغط الاسموزي:</b> في حالة المصهور لا يوجد ضغط اسموزي مائي مباشر، ولكن القوة الكهرومغناطيسية والضغط الإلكتروليتي للأيونات يحددان حركة الأيونات نحو الأقطاب المباشرة.";
+        } else if(electro === 'H2SO4') {
+            aEq = "2H₂O → O₂ + 4H⁺ + 4e⁻";
+            cEq = "4H⁺ + 4e⁻ → 2H₂(g)";
+            tEq = "2H₂O → 2H₂ + O₂";
+            info = "التحليل الكهربائي للماء المحمض: يتصاعد غاز الأوكسجين عند المصعد وغاز الهيدروجين ضعف الحجم عند المهبط.";
+            eqMass = 1.008;
+            nValence = 1;
+
+            prodDetails = "<b>الغاز المتصاعد:</b> غاز الأكسجين (O₂) عند المصعد (+)، وغاز الهيدروجين (H₂) عند المهبط (-) بضعف حجم الأكسجين.<br><b>الراسب:</b> لا يوجد راسب صلب متكون.";
+            elecDetails = "<b>نوع الإلكتروليت:</b> إلكتروليت قوي (Strong Acid) حامضي يتفكك كلياً في الماء ليعطي أيونات H⁺ و SO₄²⁻ ذات التوصيل العالي جدًا.";
+            osmoDetails = "<b>الأساس العلمي والضغط الاسموزي:</b> ينتج عن تفكك الحمض زيادة ضغط اسموزي عالٍ بسبب صغر حجم الهيدرونيوم وحركته السريعة، مما يسهم في الانتقال الإلكتروليتي السريع للأيونات تحت المائل الجهدي.";
+        } else {
+            aEq = "2Cl⁻ → Cl₂(g) + 2e⁻";
+            cEq = "2H⁺ + 2e⁻ → H₂(g)";
+            tEq = "2HCl → H₂ + Cl₂";
+            info = "تحليل حمض HCl: تتجه أنيونات الكلوريد للمصعد للتحرر كغاز كلور وتتجه الكاتيونات للمهبط لتحرير الهيدروجين.";
+            eqMass = 1.008;
+            nValence = 1;
+
+            prodDetails = "<b>الغاز المتصاعد:</b> غاز الكلور (Cl₂) عند المصعد (+) وغاز الهيدروجين (H₂) عند المهبط (-).<br><b>الراسب:</b> لا يوجد راسب صلب.";
+            elecDetails = "<b>نوع الإلكتروليت:</b> إلكتروليت قوي تام التأين (Strong Electrolyte) إلى H⁺ و Cl⁻.";
+            osmoDetails = "<b>الأساس العلمي والضغط الاسموزي:</b> يعتمد الضغط الاسموزي مباشرة على التفاعل الأيوني والتأين التام؛ حيث يتضاعف العدد الجزيئي الجسيمي (i = 2) مما يضاعف الضغط الاسموزي بالمقارنة بالمواد غير الإلكتروليتية.";
+        }
+    } else if(type === 'daniel') {
+        emf = 1.10;
+        aEq = "Zn(s) → Zn²⁺ + 2e⁻";
+        cEq = "Cu²⁺ + 2e⁻ → Cu(s)";
+        tEq = "Zn + Cu²⁺ → Zn²⁺ + Cu";
+        info = "خلية دانيال الجلفانية: تذوب صفيحة الخارصين وتتأكسد، بينما تتجه أيونات النحاس للاختزال والترسب على قطب النحاس.";
+        eqMass = 31.75;
+        nValence = 2;
+
+        prodDetails = "<b>الغاز المتصاعد:</b> لا يوجد غاز متصاعد.<br><b>الراسب/المترسب:</b> ذرات النحاس (Cu) تترسب على كاثود النحاس، بينما يذوب أنود الخارصين (Zn).";
+        elecDetails = "<b>نوع الإلكتروليت:</b> إلكتروليتات قوية مزدوجة في النصفين (محلول ZnSO₄ و CuSO₄) متصلة بقنطرة ملحية تحتوي على إلكتروليت قوي (KNO₃).";
+        osmoDetails = "<b>الأساس العلمي والضغط الاسموزي:</b> القنطرة الملحية توازن الضغط الاسموزي والجهد الإلكتروليتي بين نصفي الخلية لمنع تراكم الشحنات والحد من الاختلاف الاسموزي المفاجئ الذي قد يوقف التيار.";
+    } else if(type === 'volta') {
+        emf = 0.76;
+        aEq = "Zn(s) → Zn²⁺ + 2e⁻";
+        cEq = "2H⁺ + 2e⁻ → H₂(g)";
+        tEq = "Zn + 2H⁺ → Zn²⁺ + H₂";
+        info = "خلية فولتا البسيطة: يتأكسد الخارصين وتتجمع فقاعات الهيدروجين على قطب النحاس مما يسبب الاستقطاب.";
+        eqMass = 1.008;
+        nValence = 1;
+
+        prodDetails = "<b>الغاز المتصاعد:</b> غاز الهيدروجين (H₂) يتصاعد ويتجمع على قطب النحاس (المهبط).<br><b>الراسب:</b> يذوب قطب الخارصين بدون راسب صلب جديد.";
+        elecDetails = "<b>نوع الإلكتروليت:</b> حمض الكبريتيك المخفف (H₂SO₄) وهو إلكتروليت قوي تام التأين.";
+        osmoDetails = "<b>الأساس العلمي والضغط الاسموزي:</b> تفكك الحمض يزيد تركيز الأيونات وقوة الضغط الاسموزي والالكتروليتي، لكن ظاهرة الاستقطاب الناتجة عن فقاعات غاز الهيدروجين تعاكس قوة الدفع الكهربية.";
+    } else if(type === 'lead') {
+        emf = 2.05;
+        aEq = "Pb + SO₄²⁻ → PbSO₄ + 2e⁻";
+        cEq = "PbO₂ + 4H⁺ + SO₄²⁻ + 2e⁻ → PbSO₄ + 2H₂O";
+        tEq = "Pb + PbO₂ + 2H₂SO₄ → 2PbSO₄ + 2H₂O";
+        info = "مركم الرصاص (التفريغ): تتحول الطاقة الكيميائية لطاقة كهربائية وتترسب كبريتات الرصاص على الكلا القطبين.";
+        eqMass = 103.6;
+        nValence = 2;
+
+        prodDetails = "<b>الغاز المتصاعد:</b> لا يوجد غاز في التفاعل العادي (يتكون عند الشحن الزائد فقط).<br><b>الراسب/الصلب:</b> راسب من كبريتات الرصاص (PbSO₄) يغطي القطبين أثناء التفريغ.";
+        elecDetails = "<b>نوع الإلكتروليت:</b> حمض الكبريتيك المركز/المتوسط (H₂SO₄)، وهو إلكتروليت قوي ذو موصلية وكثافة عالية.";
+        osmoDetails = "<b>الأساس العلمي والضغط الاسموزي:</b> تغير تركيز الحمض أثناء التفريغ والشحن تؤثر مباشرة على الضغط الاسموزي والضغط الإلكتروليتي للخلية؛ حيث يقل تركيز الأيونات فينخفض الضغط الاسموزي للمحلول عند التفريغ.";
+    } else if(type === 'leclanche') {
+        emf = 1.50;
+        aEq = "Zn(s) → Zn²⁺(aq) + 2e⁻";
+        cEq = "2MnO₂ + 2NH₄⁺ + 2e⁻ → Mn₂O₃ + 2NH₃ + H₂O";
+        tEq = "Zn + 2MnO₂ + 2NH₄Cl → Zn(NH₃)₂Cl₂ + Mn₂O₃ + H₂O";
+        info = "خلية لادكلانشيه الجافة: خلية جلفانية ابتدائية غير انعكاسية، يتأكسد وعاء الخارصين الخارجي (الأنود) ويُختزل ثاني أكسيد المغنيسيوم حول ساق الجرافيت (الكاثود).";
+        eqMass = 32.69;
+        nValence = 2;
+
+        prodDetails = "<b>الغازات والمعقدات:</b> غاز الأمونيا (NH₃) الناتج يزول تفاعله مع Zn²⁺ متكوناً ملح معقد صلب Zn(NH₃)₂Cl₂.<br><b>الراسب/المترسب:</b> تكون أكسيد المغنيسيوم الثلاثي (Mn₂O₃) والمعقد الصلب المتجمع.";
+        elecDetails = "<b>نوع الإلكتروليت:</b> معجون رطب غير مائي يسيل (Paste) يتكون من كلوريد الأمونيوم (NH₄Cl) وكلوريد الخارصين (ZnCl₂) وهو إلكتروليت قوي شبه جاف لتسهيل حركة الأيونات.";
+        osmoDetails = "<b>الأساس العلمي والضغط الاسموزي:</b> حالة المعجون تمنع السكب وتوفر ضغطاً اسموزياً موازناً يُحافظ على رطوبة وتأين أيونات NH₄⁺ و Cl⁻ دون الجفاف التام، وتمنع انتشار الأيونات العشوائي السريع.";
+    }
+
+    let current = v / 1.5; 
+    let mass = (current * t * eqMass) / FARADAY;
+    let volume = (current * t * 22400) / (nValence * FARADAY); 
+
+    document.getElementById('emfDisp').innerText = emf.toFixed(2) + " V";
+    document.getElementById('currentDisp').innerText = current.toFixed(2) + " A";
+    document.getElementById('massDisp').innerText = mass.toFixed(4) + " g";
+    document.getElementById('volDisp').innerText = volume.toFixed(1) + " mL";
+    
+    document.getElementById('anodeEq').innerText = aEq;
+    document.getElementById('cathodeEq').innerText = cEq;
+    document.getElementById('totalEq').innerText = tEq;
+    document.getElementById('explanation').innerText = info;
+
+    document.getElementById('productsInfo').innerHTML = prodDetails;
+    document.getElementById('electrolyteInfo').innerHTML = elecDetails;
+    document.getElementById('osmoticInfo').innerHTML = osmoDetails;
+}
+
+function toggleSim() {
+    isRunning = !isRunning;
+    document.getElementById('startBtn').innerText = isRunning ? "إيقاف المحاكاة 🛑" : "تشغيل المحاكاة 🚀";
+    if (isRunning) animate();
+}
+
+function animate() {
+    if (!isRunning) return;
+    updatePhysics();
+    draw();
+    animFrame = requestAnimationFrame(animate);
+}
+
+function updatePhysics() {
+    const type = document.getElementById('cellType').value;
+    let targetCathodeX = 580;
+    let targetAnodeX = 270;
+
+    if (type === 'daniel') {
+        targetAnodeX = 212;
+        targetCathodeX = 632;
+    } else if (type === 'voltmeter' || type === 'volta') {
+        targetAnodeX = 312;
+        targetCathodeX = 538;
+    } else if (type === 'leclanche') {
+        targetAnodeX = 260;
+        targetCathodeX = 425;
+    }
+
+    cations.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < 150 || p.x > 700) p.vx *= -1;
+        if(p.y < 200 || p.y > 400) p.vy *= -1;
+
+        if (isRunning) {
+            p.x += (targetCathodeX - p.x) * 0.015;
+        }
+    });
+
+    anions.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < 150 || p.x > 700) p.vx *= -1;
+        if(p.y < 200 || p.y > 400) p.vy *= -1;
+
+        if (isRunning) {
+            p.x += (targetAnodeX - p.x) * 0.015;
+        }
+    });
+
+    eParticles.forEach(e => {
+        e.progress += 0.01;
+        if (e.progress > 1) e.progress = 0;
+    });
+
+    if (type !== 'leclanche' && type !== 'daniel' && Math.random() < 0.25) {
+        gasBubbles.push({ x: targetAnodeX + (Math.random()-0.5)*20, y: 350, r: Math.random()*3+2 });
+        gasBubbles.push({ x: targetCathodeX + (Math.random()-0.5)*20, y: 350, r: Math.random()*3+2 });
+    }
+
+    gasBubbles.forEach((b, idx) => {
+        b.y -= 2;
+        if (b.y < 180) gasBubbles.splice(idx, 1);
+    });
+
+    if (depositAmount < 8) depositAmount += 0.01;
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const type = document.getElementById('cellType').value;
+
+    if (type === 'utube') drawUTube();
+    else if (type === 'daniel') drawDanielCell();
+    else if (type === 'volta') drawVoltaCell();
+    else if (type === 'lead') drawLeadCell();
+    else if (type === 'leclanche') drawLeclancheCell();
+    else drawBeakerCell();
+
+    if (isRunning) {
+        cations.forEach(p => drawParticle(p.x, p.y, '#f87171', '+'));
+        anions.forEach(p => drawParticle(p.x, p.y, '#60a5fa', '-'));
+
+        ctx.fillStyle = "rgba(74, 222, 128, 0.6)";
+        gasBubbles.forEach(b => {
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+            ctx.fill();
+        });
+    }
+}
+
+function drawUTube() {
+    const { anode, cathode } = getElectrodeConfig();
+    const eLabel = getElectrolyteLabel();
+
+    ctx.strokeStyle = "#9ca3af";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(220, 150); ctx.lineTo(220, 360);
+    ctx.arcTo(220, 420, 280, 420, 60);
+    ctx.lineTo(570, 420);
+    ctx.arcTo(630, 420, 630, 360, 60);
+    ctx.lineTo(630, 150);
+
+    ctx.moveTo(280, 150); ctx.lineTo(280, 340);
+    ctx.arcTo(280, 360, 300, 360, 20);
+    ctx.lineTo(550, 360);
+    ctx.arcTo(570, 360, 570, 340, 20);
+    ctx.lineTo(570, 150);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(56, 189, 248, 0.25)";
+    ctx.fillRect(226, 200, 48, 150);
+    ctx.fillRect(576, 200, 48, 150);
+    ctx.fillRect(270, 350, 310, 64);
+
+    ctx.fillStyle = anode.color;
+    ctx.fillRect(238, 130, 24, 200);
+    ctx.fillStyle = cathode.color;
+    ctx.fillRect(588, 130, 24, 200);
+
+    drawDeposit(585, 230, 30, 100);
+    drawCircuit(250, 130, 600, 130, true);
+
+    drawLabel("أنبوبة U (شعبتان)", 425, 450);
+    drawElectrodeBadge(250, 105, anode.name, anode.symbol, anode.sign, "#ef4444");
+    drawElectrodeBadge(600, 105, cathode.name, cathode.symbol, cathode.sign, "#3b82f6");
+
+    drawPointerArrow(425, 310, 425, 375, eLabel.label, "#38bdf8");
+}
+
+function drawDanielCell() {
+    const { anode, cathode } = getElectrodeConfig();
+    const eLabel = getElectrolyteLabel();
+
+    ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 4;
+    ctx.strokeRect(150, 220, 220, 190);
+    ctx.fillStyle = "rgba(148, 163, 184, 0.2)";
+    ctx.fillRect(152, 250, 216, 158);
+
+    ctx.strokeRect(480, 220, 220, 190);
+    ctx.fillStyle = "rgba(56, 189, 248, 0.25)";
+    ctx.fillRect(482, 250, 216, 158);
+
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 22;
+    ctx.beginPath();
+    ctx.moveTo(310, 320); ctx.lineTo(310, 180);
+    ctx.lineTo(540, 180); ctx.lineTo(540, 320);
+    ctx.stroke();
+
+    ctx.fillStyle = anode.color;
+    ctx.fillRect(200, 140, 24, 220);
+    ctx.fillStyle = cathode.color;
+    ctx.fillRect(620, 140, 24, 220);
+
+    drawDeposit(617, 230, 30, 110);
+    drawCircuit(212, 140, 632, 140, false);
+
+    drawLabel("كأس ZnSO₄", 260, 430);
+    drawLabel("كأس CuSO₄", 590, 430);
+    drawLabel("قنطرة ملحية (KNO₃)", 425, 175);
+
+    drawElectrodeBadge(212, 110, anode.name, anode.symbol, anode.sign, "#ef4444");
+    drawElectrodeBadge(632, 110, cathode.name, cathode.symbol, cathode.sign, "#3b82f6");
+
+    drawPointerArrow(170, 280, 240, 340, eLabel.label1, "#4ade80");
+    drawPointerArrow(680, 280, 610, 340, eLabel.label2, "#38bdf8");
+}
+
+function drawBeakerCell() {
+    const { anode, cathode } = getElectrodeConfig();
+    const eLabel = getElectrolyteLabel();
+
+    ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 4;
+    ctx.strokeRect(220, 200, 410, 210);
+    ctx.fillStyle = "rgba(56, 189, 248, 0.25)";
+    ctx.fillRect(222, 230, 406, 178);
+
+    ctx.fillStyle = anode.color;
+    ctx.fillRect(300, 140, 24, 210);
+    ctx.fillStyle = cathode.color;
+    ctx.fillRect(526, 140, 24, 210);
+
+    drawDeposit(523, 230, 30, 110);
+    drawCircuit(312, 140, 538, 140, true);
+
+    drawLabel("وعاء إلكتروليتي أحادي", 425, 435);
+    drawElectrodeBadge(312, 110, anode.name, anode.symbol, anode.sign, "#ef4444");
+    drawElectrodeBadge(538, 110, cathode.name, cathode.symbol, cathode.sign, "#3b82f6");
+
+    drawPointerArrow(425, 270, 425, 330, eLabel.label, "#4ade80");
+}
+
+function drawVoltaCell() {
+    const { anode, cathode } = getElectrodeConfig();
+    const eLabel = getElectrolyteLabel();
+
+    ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 4;
+    ctx.strokeRect(220, 200, 410, 210);
+    ctx.fillStyle = "rgba(248, 113, 113, 0.15)";
+    ctx.fillRect(222, 230, 406, 178);
+
+    ctx.fillStyle = cathode.color;
+    ctx.fillRect(300, 140, 24, 210);
+    ctx.fillStyle = anode.color;
+    ctx.fillRect(526, 140, 24, 210);
+
+    drawCircuit(312, 140, 538, 140, false);
+
+    drawLabel("خلية فولتا الجلفانية", 425, 435);
+    drawElectrodeBadge(312, 110, cathode.name, cathode.symbol, cathode.sign, "#3b82f6");
+    drawElectrodeBadge(538, 110, anode.name, anode.symbol, anode.sign, "#ef4444");
+
+    drawPointerArrow(425, 270, 425, 330, eLabel.label, "#fbbf24");
+}
+
+function drawLeadCell() {
+    const { anode, cathode } = getElectrodeConfig();
+    const eLabel = getElectrolyteLabel();
+
+    ctx.strokeStyle = "#4b5563"; ctx.lineWidth = 6;
+    ctx.strokeRect(200, 180, 450, 230);
+    ctx.fillStyle = "rgba(100, 116, 139, 0.3)";
+    ctx.fillRect(203, 210, 444, 197);
+
+    for(let x = 260; x <= 580; x += 40) {
+        ctx.fillStyle = (x % 80 === 0) ? anode.color : cathode.color;
+        ctx.fillRect(x, 140, 16, 230);
+    }
+
+    drawCircuit(268, 140, 588, 140, true);
+    drawLabel("صفائح متناوبة من الرصاص Pb وثاني أكسيد الرصاص PbO₂", 425, 435);
+    drawElectrodeBadge(268, 110, anode.name, anode.symbol, anode.sign, "#ef4444");
+    drawElectrodeBadge(588, 110, cathode.name, cathode.symbol, cathode.sign, "#3b82f6");
+
+    drawPointerArrow(425, 250, 425, 310, eLabel.label, "#fbbf24");
+}
+
+function drawLeclancheCell() {
+    const { anode, cathode } = getElectrodeConfig();
+    const eLabel = getElectrolyteLabel();
+
+    // رسم هيكل البطارية الجافة الخارجي (وعاء الخارصين)
+    ctx.strokeStyle = "#94a3b8"; 
+    ctx.lineWidth = 6;
+    ctx.strokeRect(280, 180, 290, 230);
+
+    // الوعاء الداخلي للمعجون الإلكتروليتي
+    ctx.fillStyle = "rgba(51, 65, 85, 0.85)";
+    ctx.fillRect(283, 183, 284, 224);
+
+    // الطبقة المحيطة بساق الجرافيت (خليط MnO2 ومعجون كربون)
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(360, 200, 130, 200);
+
+    // ساق الجرافيت (الكاثود)
+    ctx.fillStyle = "#020617";
+    ctx.fillRect(412, 140, 26, 240);
+
+    // القرص المعدني العلوي (موجب)
+    ctx.fillStyle = "#fbbf24";
+    ctx.fillRect(410, 130, 30, 10);
+
+    // الدائرة الخارجية
+    drawCircuit(283, 180, 425, 130, false);
+
+    drawLabel("خلية لادكلانشيه الجافة (Dry Cell)", 425, 440);
+    drawElectrodeBadge(280, 110, anode.name, anode.symbol, anode.sign, "#ef4444");
+    drawElectrodeBadge(530, 110, cathode.name, cathode.symbol, cathode.sign, "#3b82f6");
+
+    // رسم أسهم إشارية متعددة لتوضيح طبقات خلية لادكلانشيه
+    drawPointerArrow(200, 290, 280, 290, "وعاء الخارصين (أنود -)", "#f87171");
+    drawPointerArrow(650, 290, 490, 290, "خليط MnO₂ + C (اختزال)", "#38bdf8");
+    drawPointerArrow(425, 370, 340, 320, eLabel.label, "#4ade80");
+}
+
+function drawPointerArrow(fromX, fromY, toX, toY, text, color) {
+    ctx.save();
+    
+    ctx.font = "bold 12px sans-serif";
+    const textWidth = ctx.measureText(text).width;
+    
+    ctx.fillStyle = "#030712";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    
+    ctx.beginPath();
+    ctx.roundRect(fromX - textWidth/2 - 8, fromY - 14, textWidth + 16, 22, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    ctx.textAlign = "center";
+    ctx.fillText(text, fromX, fromY + 2);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY + 10);
+    ctx.lineTo(toX, toY);
+    ctx.stroke();
+
+    const headlen = 8;
+    const angle = Math.atan2(toY - (fromY + 10), toX - fromX);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(toX, toY);
+    ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+}
+
+function drawElectrodeBadge(x, y, name, symbol, sign, color) {
+    ctx.save();
+    ctx.fillStyle = "#030712";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    
+    const bx = x - 50, by = y - 22, bw = 100, bh = 28, r = 6;
+    ctx.beginPath();
+    ctx.moveTo(bx + r, by);
+    ctx.lineTo(bx + bw - r, by);
+    ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
+    ctx.lineTo(bx + bw, by + bh - r);
+    ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
+    ctx.lineTo(bx + r, by + bh);
+    ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
+    ctx.lineTo(bx, by + r);
+    ctx.quadraticCurveTo(bx, by, bx + r, by);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(`${name} [${symbol}] ${sign}`, x, y - 4);
+    ctx.restore();
+}
+
+function drawDeposit(x, y, w, h) {
+    if(!isRunning || depositAmount <= 0) return;
+    ctx.fillStyle = "#b45309";
+    ctx.fillRect(x, y, w, h);
+}
+
+function drawCircuit(x1, y1, x2, y2, hasBattery) {
+    ctx.strokeStyle = "#fbbf24";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1); ctx.lineTo(x1, 60);
+    ctx.lineTo(x2, 60); ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    const midX = (x1 + x2) / 2;
+
+    if (hasBattery) {
+        ctx.fillStyle = "#111827"; ctx.fillRect(midX - 30, 40, 60, 40);
+        ctx.strokeStyle = "#fbbf24"; ctx.strokeRect(midX - 30, 40, 60, 40);
+
+        ctx.fillStyle = "#f87171"; ctx.font = "bold 16px sans-serif";
+        ctx.fillText("+", midX - 18, 65);
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillText("-", midX + 8, 65);
+    } else {
+        ctx.fillStyle = "#030712"; ctx.beginPath();
+        ctx.arc(midX, 60, 22, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#38bdf8"; ctx.font = "bold 16px sans-serif";
+        ctx.textAlign = "center"; ctx.fillText("V", midX, 66);
+    }
+
+    if (isRunning) {
+        eParticles.forEach(e => {
+            let px = x1, py = y1;
+            if (e.progress < 0.35) {
+                px = x1; py = y1 - (y1 - 60) * (e.progress / 0.35);
+            } else if (e.progress < 0.65) {
+                px = x1 + (x2 - x1) * ((e.progress - 0.35) / 0.3); py = 60;
+            } else {
+                px = x2; py = 60 + (y2 - 60) * ((e.progress - 0.65) / 0.35);
+            }
+            ctx.fillStyle = "#fbbf24"; ctx.beginPath();
+            ctx.arc(px, py, 4, 0, Math.PI*2); ctx.fill();
+        });
+    }
+}
+
+function drawParticle(x, y, color, symbol) {
+    ctx.fillStyle = color; ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#000"; ctx.font = "bold 10px sans-serif";
+    ctx.textAlign = "center"; ctx.fillText(symbol, x, y+3);
+}
+
+function drawLabel(txt, x, y) {
+    ctx.fillStyle = "#f3f4f6"; ctx.font = "12px Tahoma, sans-serif";
+    ctx.textAlign = "center"; ctx.fillText(txt, x, y);
+}
+
+resetSim();
+</script>
+
+</body>
+</html>
